@@ -31,7 +31,7 @@ The workflow is designed for semi-automatic measurement:
 Install dependencies:
 
 ```bash
-python -m pip install numpy opencv-python matplotlib scikit-image tifffile
+python -m pip install -r requirements.txt
 ```
 
 ## Usage
