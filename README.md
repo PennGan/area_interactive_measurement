@@ -16,7 +16,7 @@ The workflow is designed for semi-automatic measurement:
 - Supports single-image and batch folder processing
 - Fixed scale bar pixel mode to skip manual scale calibration
 - Measures full outer contour area, including internal holes
-- OpenCV brush editing for manual add/erase correction
+- OpenCV brush editing for manual erase/add correction
 - Writes one summary CSV for all processed images
 
 ## Requirements
@@ -54,12 +54,14 @@ If `--fixed-scale-pixels` is omitted, the script asks you to click the two ends 
 
 After automatic segmentation, an OpenCV editor window opens:
 
-- Left mouse drag: add mask area
-- Right mouse drag: erase mask area
+- Left mouse drag: erase mask area
+- Right mouse drag: add mask area
 - `+` / `-`: change brush size
 - `r`: reset to the automatic segmentation
 - `Enter`: confirm the current mask and continue
 - `Esc`: close the editor and continue with the current mask
+
+The brush starts at `80 px` by default.
 
 ## Output
 
@@ -77,6 +79,38 @@ The summary CSV contains:
 - `um_per_pixel`
 - `area_um2`
 - `area_mm2`
+
+## Export Only The First TIFF Page
+
+Some TIFF files contain multiple pages:
+
+- page 0: the full-resolution image
+- page 1: a low-resolution thumbnail used by Preview
+
+To batch-export only the first page into single-page TIFF files:
+
+```bash
+python extract_first_tiff_page.py path/to/folder --output-dir extracted_tiffs
+```
+
+If the TIFFs are inside nested subfolders and you want to keep the same folder structure
+in the output directory:
+
+```bash
+python extract_first_tiff_page.py path/to/folder --output-dir extracted_tiffs --recursive
+```
+
+To process a single file:
+
+```bash
+python extract_first_tiff_page.py path/to/image.tif --output-dir extracted_tiffs
+```
+
+If you want to overwrite existing outputs:
+
+```bash
+python extract_first_tiff_page.py path/to/folder --output-dir extracted_tiffs --overwrite
+```
 
 ## Notes
 

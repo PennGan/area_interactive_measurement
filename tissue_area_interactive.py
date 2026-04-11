@@ -85,7 +85,9 @@ def parse_args() -> argparse.Namespace:
 def read_image(path: Path) -> np.ndarray:
     suffix = path.suffix.lower()
     if suffix in {".tif", ".tiff"}:
-        img = imread(str(path))
+        # Some microscope TIFFs include a second low-res thumbnail page.
+        # Always read page 0 so downstream processing uses the full-resolution image.
+        img = imread(str(path), key=0)
         if img.ndim == 2:
             img = np.stack([img] * 3, axis=-1)
         elif img.ndim == 3 and img.shape[-1] > 3:
@@ -164,7 +166,7 @@ def edit_mask_interactively(image: np.ndarray, initial_mask: np.ndarray) -> np.n
     """OpenCV brush editor for mask refinement."""
     mask = initial_mask.copy().astype(np.uint8)
     original_mask = mask.copy()
-    brush_radius = 15
+    brush_radius = 80
     drawing = False
     draw_value = True
     last_point: Point | None = None
@@ -195,7 +197,7 @@ def edit_mask_interactively(image: np.ndarray, initial_mask: np.ndarray) -> np.n
         overlay = compose_overlay(image, mask.astype(bool))
         display = cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR)
         text = (
-            f"Left:add  Right:erase  +/-:brush  Enter:confirm  r:reset  "
+            f"Left:erase  Right:add  +/-:brush  Enter:confirm  r:reset  "
             f"Brush:{brush_radius}px"
         )
         cv2.rectangle(display, (0, 0), (min(display.shape[1], 900), 36), (20, 20, 20), -1)
@@ -229,15 +231,15 @@ def edit_mask_interactively(image: np.ndarray, initial_mask: np.ndarray) -> np.n
 
         if event == cv2.EVENT_LBUTTONDOWN:
             drawing = True
-            draw_value = True
-            last_point = image_point
-            draw_brush_segment(image_point, image_point, True)
-            render()
-        elif event == cv2.EVENT_RBUTTONDOWN:
-            drawing = True
             draw_value = False
             last_point = image_point
             draw_brush_segment(image_point, image_point, False)
+            render()
+        elif event == cv2.EVENT_RBUTTONDOWN:
+            drawing = True
+            draw_value = True
+            last_point = image_point
+            draw_brush_segment(image_point, image_point, True)
             render()
         elif event == cv2.EVENT_MOUSEMOVE and drawing and last_point is not None:
             draw_brush_segment(last_point, image_point, draw_value)
@@ -476,7 +478,7 @@ def measure_single_image(
     )
     tissue_mask = pick_component_from_seed(candidates, seed)
     print(
-        "Brush edit: left-click to add, right-click to erase, +/- to resize brush, Enter to confirm."
+        "Brush edit: left-click to erase, right-click to add, +/- to resize brush, Enter to confirm."
     )
     tissue_mask = edit_mask_interactively(image, tissue_mask)
     result = calculate_area(tissue_mask, um_per_pixel)
